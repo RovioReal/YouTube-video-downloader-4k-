@@ -1,555 +1,29 @@
-<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>All-In-One YouTube Downloader</title>
-    <meta name="description" content="Download YouTube videos in various formats (MP4, MKV, WEBM, MP3, M4A) up to 4K. Features include trimming, batch downloads, subtitles, metadata editing, and dark mode.">
-    <meta name="keywords" content="youtube downloader, video downloader, download youtube, mp4, mkv, webm, mp3, m4a, 4k video, subtitles, youtube playlist downloader, youtube trim download">
+    <meta name="description" content="Download YouTube videos and audio in various formats (MP4, WEBM, MP3, M4A) up to 4K. Features include trimming, batch downloads (info only), subtitles, metadata editing, and dark mode.">
+    <meta name="keywords" content="youtube downloader, video downloader, download youtube, mp4, webm, mp3, m4a, 4k video, subtitles, youtube playlist downloader, youtube trim download">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⬇️</text></svg>">
 
     <style>
-        /* Embedded CSS */
+        /* --- PASTE YOUR EXISTING CSS HERE --- */
+        /* (Keep the CSS exactly as it was in the previous version) */
         :root {
             --primary-bg: #ffffff;
             --secondary-bg: #f4f4f4;
-            --text-color: #333333;
-            --accent-color: #ff0000; /* YouTube Red */
-            --accent-hover: #cc0000;
-            --border-color: #dddddd;
-            --input-bg: #ffffff;
-            --input-border: #cccccc;
-            --disabled-color: #aaaaaa;
-            --success-color: #28a745;
-            --error-color: #dc3545;
-            --shadow-color: rgba(0, 0, 0, 0.1);
-            --link-color: #007bff;
-
-            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /* ... other variables ... */
         }
-
         body.dark-mode {
-            --primary-bg: #1a1a1a;
-            --secondary-bg: #2c2c2c;
-            --text-color: #e0e0e0;
-            --accent-color: #ff4d4d;
-            --accent-hover: #ff6666;
-            --border-color: #444444;
-            --input-bg: #333333;
-            --input-border: #555555;
-            --disabled-color: #777777;
-            --shadow-color: rgba(255, 255, 255, 0.1);
-            --link-color: #58a6ff;
+             --primary-bg: #1a1a1a;
+             /* ... other dark mode variables ... */
         }
-
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
-        body {
-            font-family: var(--font-main);
-            background-color: var(--primary-bg);
-            color: var(--text-color);
-            line-height: 1.6;
-            transition: background-color 0.3s ease, color 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        .container {
-            width: 90%;
-            max-width: 1000px;
-            margin: 20px auto;
-            padding: 20px;
-            background-color: var(--secondary-bg);
-            border-radius: 8px;
-            box-shadow: 0 2px 10px var(--shadow-color);
-            transition: background-color 0.3s ease;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 20px;
-            flex-wrap: wrap; /* Allow wrapping on small screens */
-        }
-
-        header h1 {
-            font-size: 1.8em;
-            color: var(--accent-color);
-            margin-bottom: 10px; /* Add margin for wrapped elements */
-        }
-
-        .header-controls {
-            display: flex;
-            gap: 10px;
-        }
-
-        button, select, input[type="text"], input[type="url"] {
-            padding: 10px 15px;
-            border: 1px solid var(--input-border);
-            border-radius: 5px;
-            font-size: 1rem;
-            background-color: var(--input-bg);
-            color: var(--text-color);
-            transition: border-color 0.3s ease, background-color 0.3s ease;
-        }
-
-        button {
-            background-color: var(--accent-color);
-            color: white;
-            cursor: pointer;
-            border: none;
-            transition: background-color 0.2s ease;
-        }
-
-        button:hover:not(:disabled) {
-            background-color: var(--accent-hover);
-        }
-
-        button:disabled {
-            background-color: var(--disabled-color);
-            cursor: not-allowed;
-        }
-
-        input[type="text"], input[type="url"] {
-            width: 100%;
-            margin-bottom: 10px;
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.2); /* Adjust alpha for theme */
-        }
-        body.dark-mode input:focus, body.dark-mode select:focus {
-             box-shadow: 0 0 0 2px rgba(255, 77, 77, 0.3);
-        }
-
-
-        #url-input-section {
-            margin-bottom: 25px;
-        }
-
-        #drop-zone {
-            border: 2px dashed var(--border-color);
-            border-radius: 5px;
-            padding: 30px;
-            text-align: center;
-            cursor: pointer;
-            margin-top: 15px;
-            background-color: var(--primary-bg);
-            transition: background-color 0.2s ease, border-color 0.2s ease;
-        }
-
-        #drop-zone.dragover {
-            border-color: var(--accent-color);
-            background-color: var(--secondary-bg); /* Slight change on drag over */
-        }
-         body.dark-mode #drop-zone.dragover {
-            background-color: var(--input-bg);
-         }
-
-        #url-validation-message {
-            display: block;
-            margin-top: 5px;
-            font-size: 0.9em;
-            min-height: 1.2em; /* Reserve space */
-        }
-        .validation-error { color: var(--error-color); }
-        .validation-success { color: var(--success-color); }
-
-        #results-section {
-            display: none; /* Hidden initially */
-            margin-top: 20px;
-            border-top: 1px solid var(--border-color);
-            padding-top: 20px;
-        }
-
-        #video-info {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-            flex-wrap: wrap; /* Wrap on smaller screens */
-        }
-
-        #thumbnail {
-            max-width: 200px;
-            width: 100%; /* Make it responsive within its container */
-            height: auto;
-            border-radius: 5px;
-            object-fit: cover;
-            border: 1px solid var(--border-color);
-        }
-
-        #video-details {
-            flex: 1; /* Take remaining space */
-            min-width: 250px; /* Ensure details have enough space before wrapping */
-        }
-
-        #video-title {
-            font-size: 1.4em;
-            margin-bottom: 8px;
-        }
-
-        #channel-name, #video-duration {
-            font-size: 1em;
-            margin-bottom: 5px;
-            color: var(--text-color); /* Ensure contrast */
-            opacity: 0.9;
-        }
-
-        #video-preview-container {
-            margin-bottom: 20px;
-            background-color: #000; /* Black background for player */
-            border-radius: 5px;
-            overflow: hidden; /* Ensure video corners are rounded */
-        }
-
-        #video-preview {
-            width: 100%;
-            max-height: 400px; /* Limit player height */
-            display: block; /* Remove extra space below video */
-        }
-
-        #download-options {
-            margin-bottom: 20px;
-        }
-
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 15px;
-            flex-wrap: wrap; /* Allow tabs to wrap */
-        }
-
-        .tab-button {
-            padding: 10px 20px;
-            cursor: pointer;
-            border: none;
-            background-color: transparent;
-            border-bottom: 3px solid transparent;
-            font-size: 1rem;
-            color: var(--text-color);
-            transition: border-color 0.2s ease, color 0.2s ease;
-            margin-bottom: -1px; /* Overlap border */
-        }
-
-        .tab-button.active {
-            border-bottom-color: var(--accent-color);
-            color: var(--accent-color);
-            font-weight: bold;
-        }
-
-        .tab-content {
-            display: none;
-            padding: 15px;
-            border: 1px solid var(--border-color);
-            border-top: none;
-            border-radius: 0 0 5px 5px;
-            background-color: var(--primary-bg);
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .option-group {
-            margin-bottom: 15px;
-            display: flex;
-            flex-wrap: wrap; /* Allow wrapping on smaller screens */
-            gap: 10px;
-            align-items: center;
-        }
-
-        .option-group label {
-            flex-basis: 100px; /* Fixed width for labels */
-            font-weight: bold;
-        }
-
-        .option-group select {
-            flex: 1; /* Take available space */
-            min-width: 150px; /* Minimum width before wrapping */
-        }
-
-        .file-size-estimate {
-            margin-left: 15px;
-            font-size: 0.9em;
-            opacity: 0.8;
-            flex-basis: 150px; /* Allocate space */
-            text-align: right;
-        }
-
-        #trim-controls, #metadata-editor {
-            display: none; /* Hidden initially, shown by JS */
-            margin-top: 15px;
-            padding: 15px;
-            border: 1px dashed var(--border-color);
-            border-radius: 5px;
-            background-color: var(--secondary-bg);
-        }
-        #trim-controls h4, #metadata-editor h4 {
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-         .trim-input-group, .metadata-input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-            align-items: center;
-        }
-        .trim-input-group label, .metadata-input-group label {
-             width: 80px; /* Fixed label width */
-             text-align: right;
-             font-size: 0.9em;
-        }
-         .trim-input-group input, .metadata-input-group input {
-            flex: 1;
-            padding: 8px 10px; /* Smaller padding */
-            font-size: 0.9em;
-         }
-
-        #download-action {
-            text-align: center;
-            margin-top: 25px;
-        }
-
-        #download-button {
-            padding: 12px 30px;
-            font-size: 1.2em;
-            min-width: 150px;
-        }
-
-        #progress-container {
-            display: none; /* Hidden initially */
-            width: 100%;
-            background-color: var(--input-border);
-            border-radius: 5px;
-            overflow: hidden;
-            margin-top: 15px;
-            height: 25px;
-        }
-
-        #progress-bar {
-            width: 0%;
-            height: 100%;
-            background-color: var(--success-color);
-            text-align: center;
-            line-height: 25px;
-            color: white;
-            font-weight: bold;
-            transition: width 0.3s ease-out;
-            position: relative; /* For text overlay */
-        }
-
-        #progress-text {
-           position: absolute;
-           width: 100%;
-           left: 0;
-           top: 0;
-           color: white;
-           text-shadow: 1px 1px 1px rgba(0,0,0,0.5); /* Improve readability */
-        }
-
-        #batch-download-info {
-            display: none; /* Shown for playlists */
-            margin-top: 15px;
-            padding: 10px;
-            background-color: var(--secondary-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            font-size: 0.9em;
-        }
-
-        #download-history {
-            margin-top: 30px;
-            border-top: 1px solid var(--border-color);
-            padding-top: 20px;
-        }
-
-        #download-history h3 {
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        #clear-history-button {
-            font-size: 0.8em;
-            padding: 5px 10px;
-            background-color: var(--error-color);
-        }
-        #clear-history-button:hover {
-             background-color: #a02430; /* Darker red */
-        }
-
-
-        #history-list {
-            list-style: none;
-            max-height: 200px;
-            overflow-y: auto;
-            padding-right: 10px; /* Space for scrollbar */
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            padding: 10px;
-            background-color: var(--primary-bg);
-        }
-
-        #history-list li {
-            padding: 8px 5px;
-            border-bottom: 1px dashed var(--border-color);
-            font-size: 0.9em;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        #history-list li:last-child {
-            border-bottom: none;
-        }
-        #history-list .history-title {
-             flex-grow: 1;
-             margin-right: 10px;
-             overflow: hidden;
-             text-overflow: ellipsis;
-             white-space: nowrap;
-        }
-         #history-list .history-date {
-             font-size: 0.8em;
-             opacity: 0.7;
-             white-space: nowrap;
-             flex-shrink: 0; /* Prevent shrinking */
-        }
-
-        #social-share {
-            margin-top: 20px;
-            text-align: center;
-        }
-        #social-share button {
-            margin: 0 5px;
-            background: none;
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            font-size: 0.9em;
-        }
-         #social-share button:hover {
-             background-color: var(--secondary-bg);
-             border-color: var(--input-border);
-         }
-         body.dark-mode #social-share button:hover {
-             background-color: var(--input-bg);
-         }
-
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .container {
-                width: 95%;
-                padding: 15px;
-            }
-            header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            header h1 {
-                 font-size: 1.6em;
-                 margin-bottom: 15px; /* More space when stacked */
-            }
-             .header-controls {
-                 width: 100%; /* Make controls take full width */
-                 justify-content: flex-end; /* Align controls to the right */
-             }
-
-            #video-info {
-                flex-direction: column;
-                align-items: center; /* Center thumbnail */
-                text-align: center;
-            }
-            #thumbnail {
-                max-width: 250px; /* Slightly larger thumbnail on mobile */
-            }
-             #video-details {
-                 min-width: unset; /* Remove min-width */
-                 width: 100%;
-             }
-
-            .option-group {
-                flex-direction: column;
-                align-items: stretch; /* Stretch elements full width */
-            }
-             .option-group label {
-                 flex-basis: auto; /* Reset basis */
-                 margin-bottom: 5px;
-                 text-align: left;
-             }
-             .option-group select {
-                 min-width: unset;
-             }
-            .file-size-estimate {
-                 margin-left: 0;
-                 text-align: left;
-                 margin-top: 5px;
-                 flex-basis: auto;
-             }
-             .trim-input-group, .metadata-input-group {
-                 flex-direction: column;
-                 align-items: stretch;
-             }
-             .trim-input-group label, .metadata-input-group label {
-                 width: auto;
-                 text-align: left;
-                 margin-bottom: 3px;
-             }
-        }
-
-        @media (max-width: 480px) {
-            header h1 {
-                font-size: 1.4em;
-            }
-            button, select, input[type="text"], input[type="url"] {
-                font-size: 0.9rem;
-                padding: 8px 12px;
-            }
-            #download-button {
-                font-size: 1em;
-                padding: 10px 20px;
-            }
-            .tabs {
-                 justify-content: center; /* Center tabs if they wrap */
-            }
-            .tab-button {
-                padding: 8px 15px;
-                font-size: 0.9rem;
-            }
-            #history-list {
-                 max-height: 150px;
-            }
-        }
-
-        /* Utility Classes */
-        .hidden {
-            display: none;
-        }
-        .visually-hidden { /* For accessibility, hide visually but keep for screen readers */
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
+        /* ... all your other CSS rules ... */
+         #status-message.status-error { color: var(--error-color); font-weight: bold; }
+         #status-message.status-success { color: var(--success-color); font-weight: bold; }
+         #status-message.status-info { opacity: 0.8; }
 
     </style>
 </head>
@@ -558,118 +32,41 @@
     <div class="container">
         <header>
             <h1 data-lang-key="title">YouTube Downloader</h1>
-            <div class="header-controls">
-                 <select id="language-selector" aria-label="Select Language">
-                     <option value="en">English</option>
-                     <option value="es">Español</option>
-                     <option value="fr">Français</option>
-                     </select>
-                <button id="theme-toggle" aria-label="Toggle Dark/Light Mode">🌓</button>
-            </div>
-        </header>
-
+             </header>
         <main>
             <section id="url-input-section" aria-labelledby="url-input-heading">
-                <label for="youtube-url" id="url-input-heading" class="visually-hidden" data-lang-key="urlInputLabel">YouTube Video or Playlist URL</label>
-                <input type="url" id="youtube-url" placeholder="Enter YouTube Video or Playlist URL here..." aria-required="true">
-                <span id="url-validation-message" role="alert"></span>
-
-                <div id="drop-zone" role="button" tabindex="0" aria-label="Drag and drop YouTube URL here">
-                    <span data-lang-key="dropZoneText">Or drag and drop a YouTube URL here</span>
-                </div>
+                 <input type="url" id="youtube-url" placeholder="Enter YouTube Video or Playlist URL here..." aria-required="true">
+                 <span id="url-validation-message" role="alert"></span>
+                 <div id="drop-zone" role="button" tabindex="0" aria-label="Drag and drop YouTube URL here">...</div>
             </section>
 
             <section id="results-section" aria-live="polite">
-                <div id="video-info">
-                     <img id="thumbnail" src="#" alt="Video Thumbnail" class="hidden">
-                     <div id="video-details">
-                         <h2 id="video-title"></h2>
-                         <p id="channel-name"></p>
-                         <p id="video-duration"></p>
-                     </div>
-                 </div>
-
-                <div id="video-preview-container" class="hidden">
-                    <video id="video-preview" controls></video>
-                </div>
-
-                <div id="download-options">
-                    <div class="tabs" role="tablist" aria-label="Download Options">
-                        <button class="tab-button active" id="video-tab-btn" role="tab" aria-selected="true" aria-controls="video-options" data-lang-key="videoTab">Video</button>
-                        <button class="tab-button" id="audio-tab-btn" role="tab" aria-selected="false" aria-controls="audio-options" data-lang-key="audioTab">Audio</button>
-                        <button class="tab-button" id="subtitles-tab-btn" role="tab" aria-selected="false" aria-controls="subtitles-options" data-lang-key="subtitlesTab">Subtitles</button>
-                    </div>
-
-                    <div class="tab-content active" id="video-options" role="tabpanel" aria-labelledby="video-tab-btn">
+                 <div id="video-info">...</div>
+                 <div id="video-preview-container" class="hidden">...</div>
+                 <div id="download-options">
+                     <div class="tabs" role="tablist" aria-label="Download Options">...</div>
+                     <div class="tab-content active" id="video-options" role="tabpanel" aria-labelledby="video-tab-btn">
                         <div class="option-group">
                             <label for="video-quality-select" data-lang-key="qualityFormatLabel">Quality & Format:</label>
-                            <select id="video-quality-select" name="video-quality">
-                                <option value="" data-lang-key="selectQualityPlaceholder">Select quality...</option>
-                            </select>
+                            <select id="video-quality-select" name="video-quality">...</select>
                             <span class="file-size-estimate" id="video-file-size">~ MB</span>
                         </div>
                         <button id="show-trim-button" class="hidden" data-lang-key="trimVideoButton">Trim Video</button>
-                         <div id="trim-controls">
-                            <h4 data-lang-key="trimControlsTitle">Trim Video (Optional)</h4>
-                            <div class="trim-input-group">
-                                <label for="trim-start" data-lang-key="trimStartLabel">Start:</label>
-                                <input type="text" id="trim-start" placeholder="HH:MM:SS or seconds">
-                            </div>
-                            <div class="trim-input-group">
-                                <label for="trim-end" data-lang-key="trimEndLabel">End:</label>
-                                <input type="text" id="trim-end" placeholder="HH:MM:SS or seconds">
-                            </div>
-                        </div>
+                         <div id="trim-controls">...</div>
                     </div>
-
-                    <div class="tab-content" id="audio-options" role="tabpanel" aria-labelledby="audio-tab-btn">
+                     <div class="tab-content" id="audio-options" role="tabpanel" aria-labelledby="audio-tab-btn">
                          <div class="option-group">
                             <label for="audio-quality-select" data-lang-key="qualityFormatLabel">Quality & Format:</label>
-                            <select id="audio-quality-select" name="audio-quality">
-                                <option value="" data-lang-key="selectQualityPlaceholder">Select quality...</option>
-                            </select>
+                            <select id="audio-quality-select" name="audio-quality">...</select>
                             <span class="file-size-estimate" id="audio-file-size">~ MB</span>
                         </div>
                         <button id="show-metadata-button" class="hidden" data-lang-key="editMetadataButton">Edit Metadata (ID3)</button>
-                        <div id="metadata-editor">
-                            <h4 data-lang-key="metadataEditorTitle">Edit Metadata (ID3 Tags)</h4>
-                             <div class="metadata-input-group">
-                                 <label for="id3-title" data-lang-key="metadataTitleLabel">Title:</label>
-                                 <input type="text" id="id3-title">
-                             </div>
-                              <div class="metadata-input-group">
-                                 <label for="id3-artist" data-lang-key="metadataArtistLabel">Artist:</label>
-                                 <input type="text" id="id3-artist">
-                             </div>
-                             <div class="metadata-input-group">
-                                 <label for="id3-album" data-lang-key="metadataAlbumLabel">Album:</label>
-                                 <input type="text" id="id3-album">
-                             </div>
-                             <div class="metadata-input-group">
-                                 <label for="filename-input" data-lang-key="filenameLabel">Filename:</label>
-                                 <input type="text" id="filename-input">
-                             </div>
-                        </div>
+                        <div id="metadata-editor">...</div>
                     </div>
-
-                    <div class="tab-content" id="subtitles-options" role="tabpanel" aria-labelledby="subtitles-tab-btn">
-                         <div class="option-group">
-                            <label for="subtitle-select" data-lang-key="languageFormatLabel">Language & Format:</label>
-                            <select id="subtitle-select" name="subtitle">
-                               <option value="" data-lang-key="selectSubtitlesPlaceholder">Select subtitles...</option>
-                            </select>
-                             <span class="file-size-estimate" id="subtitle-file-size">~ KB</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="batch-download-info">
-                    <p><strong data-lang-key="batchNoteTitle">Note:</strong> <span data-lang-key="batchNoteText">This is a playlist. Selected quality will be applied to all videos. Downloads will start sequentially.</span></p>
-                    <p><strong data-lang-key="totalVideosLabel">Total videos:</strong> <span id="playlist-video-count">0</span></p>
+                     <div class="tab-content" id="subtitles-options" role="tabpanel" aria-labelledby="subtitles-tab-btn">...</div>
                  </div>
-
-
-                <div id="download-action">
+                 <div id="batch-download-info">...</div>
+                 <div id="download-action">
                     <button id="download-button" disabled data-lang-key="downloadButton">Download</button>
                     <div id="progress-container">
                         <div id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
@@ -678,190 +75,71 @@
                     </div>
                     <p id="status-message" role="status" style="margin-top:10px; font-size: 0.9em;"></p>
                 </div>
-
-                 <div id="social-share">
-                     <h4 data-lang-key="sharePrompt">Share this tool:</h4>
-                     <button onclick="share('facebook')" aria-label="Share on Facebook">Facebook</button>
-                     <button onclick="share('twitter')" aria-label="Share on Twitter">Twitter</button>
-                     <button onclick="share('whatsapp')" aria-label="Share on WhatsApp">WhatsApp</button>
-                     <button onclick="copyLink()" aria-label="Copy Link">Copy Link</button>
-                 </div>
-
+                 <div id="social-share">...</div>
             </section>
         </main>
-
         <footer>
-             <section id="download-history" class="container">
-                 <h3>
-                     <span data-lang-key="historyTitle">Download History</span>
-                     <button id="clear-history-button" data-lang-key="clearHistoryButton">Clear History</button>
-                 </h3>
-                <ul id="history-list">
-                    <li data-lang-key="historyEmpty">Your download history is empty.</li>
-                </ul>
-            </section>
-            <p style="text-align: center; font-size: 0.8em; opacity: 0.7; margin-top: 20px; padding-bottom: 10px;">
-                Disclaimer: Please respect YouTube's Terms of Service and copyright laws. Do not download copyrighted material without permission.
+             <section id="download-history" class="container">...</section>
+             <p style="text-align: center; font-size: 0.8em; opacity: 0.7; margin-top: 20px; padding-bottom: 10px;">
+                Disclaimer: Please respect YouTube's Terms of Service and copyright laws. Do not download copyrighted material without permission. Ensure FFMPEG is installed for trimming and audio conversion.
             </p>
         </footer>
     </div>
 
+
     <script>
-        // Embedded JavaScript
+        // --- Embedded JavaScript ---
 
         // --- Configuration & State ---
         const AppState = {
             currentVideoInfo: null, // Stores fetched video metadata
             selectedQuality: null,
-            selectedFormat: 'video', // 'video', 'audio', 'subtitles'
+            selectedFormat: 'video', // 'video', 'audio', 'subtitle'
             isPlaylist: false,
             history: [],
             currentLanguage: 'en',
-            darkMode: false
+            darkMode: false,
+            // *** NEW: Define Backend URL ***
+            backendUrl: 'http://127.0.0.1:5000' // Default Flask URL
         };
 
-         // --- Language Strings ---
-         // NOTE: In a real app, load this from JSON files per language
-         const translations = {
+        // --- Language Strings (translations object) ---
+        // --- PASTE YOUR EXISTING translations OBJECT HERE ---
+        const translations = {
              en: {
                  title: "YouTube Downloader",
-                 urlInputLabel: "YouTube Video or Playlist URL",
-                 dropZoneText: "Or drag and drop a YouTube URL here",
-                 videoTab: "Video",
-                 audioTab: "Audio",
-                 subtitlesTab: "Subtitles",
-                 qualityFormatLabel: "Quality & Format:",
-                 selectQualityPlaceholder: "Select quality...",
-                 trimVideoButton: "Trim Video",
-                 trimControlsTitle: "Trim Video (Optional)",
-                 trimStartLabel: "Start:",
-                 trimEndLabel: "End:",
-                 editMetadataButton: "Edit Metadata (ID3)",
-                 metadataEditorTitle: "Edit Metadata (ID3 Tags)",
-                 metadataTitleLabel: "Title:",
-                 metadataArtistLabel: "Artist:",
-                 metadataAlbumLabel: "Album:",
-                 filenameLabel: "Filename:",
-                 languageFormatLabel: "Language & Format:",
-                 selectSubtitlesPlaceholder: "Select subtitles...",
-                 batchNoteTitle: "Note:",
-                 batchNoteText: "This is a playlist. Selected quality will be applied to all videos. Downloads will start sequentially.",
-                 totalVideosLabel: "Total videos:",
-                 downloadButton: "Download",
-                 sharePrompt: "Share this tool:",
-                 historyTitle: "Download History",
-                 clearHistoryButton: "Clear History",
-                 historyEmpty: "Your download history is empty.",
-                 validationEnterUrl: "Please enter a YouTube URL.",
-                 validationInvalidUrl: "Invalid YouTube URL format.",
-                 validationFetching: "Fetching video info...",
-                 validationSuccess: "URL valid. Fetching data...",
-                 fetchError: "Error fetching video data. Check the URL or try again later.",
-                 downloadStatusPreparing: "Preparing download...",
-                 downloadStatusDownloading: "Downloading...",
-                 downloadStatusProcessing: "Processing...",
-                 downloadStatusComplete: "Download complete!",
-                 downloadStatusError: "Download failed.",
-                 playlistFetchNote: "Playlist detected. Fetching video list...",
-                 shareCopied: "Link copied to clipboard!",
-                 themeToggleLight: "Switch to Dark Mode",
-                 themeToggleDark: "Switch to Light Mode",
-                 // ... add more keys as needed
+                 // ... all other english keys
+                 downloadStatusContacting: "Contacting server...",
+                 downloadStatusServerError: "Server error during download.",
+                 downloadStatusReceiving: "Receiving file...",
+                 fetchErrorBackend: "Error communicating with backend.",
+                 fetchErrorProcessing: "Backend failed to process the URL.",
              },
              es: {
-                 title: "Descargador de YouTube",
-                 urlInputLabel: "URL de Video o Playlist de YouTube",
-                 dropZoneText: "O arrastra y suelta una URL de YouTube aquí",
-                 videoTab: "Video",
-                 audioTab: "Audio",
-                 subtitlesTab: "Subtítulos",
-                 qualityFormatLabel: "Calidad y Formato:",
-                 selectQualityPlaceholder: "Selecciona calidad...",
-                 trimVideoButton: "Recortar Video",
-                 trimControlsTitle: "Recortar Video (Opcional)",
-                 trimStartLabel: "Inicio:",
-                 trimEndLabel: "Fin:",
-                 editMetadataButton: "Editar Metadatos (ID3)",
-                 metadataEditorTitle: "Editar Metadatos (Etiquetas ID3)",
-                 metadataTitleLabel: "Título:",
-                 metadataArtistLabel: "Artista:",
-                 metadataAlbumLabel: "Álbum:",
-                 filenameLabel: "Nombre de archivo:",
-                 languageFormatLabel: "Idioma y Formato:",
-                 selectSubtitlesPlaceholder: "Selecciona subtítulos...",
-                 batchNoteTitle: "Nota:",
-                 batchNoteText: "Esto es una lista de reproducción. La calidad seleccionada se aplicará a todos los videos. Las descargas comenzarán secuencialmente.",
-                 totalVideosLabel: "Videos totales:",
-                 downloadButton: "Descargar",
-                 sharePrompt: "Comparte esta herramienta:",
-                 historyTitle: "Historial de Descargas",
-                 clearHistoryButton: "Limpiar Historial",
-                 historyEmpty: "Tu historial de descargas está vacío.",
-                 validationEnterUrl: "Por favor, introduce una URL de YouTube.",
-                 validationInvalidUrl: "Formato de URL de YouTube inválido.",
-                 validationFetching: "Obteniendo información del video...",
-                 validationSuccess: "URL válida. Obteniendo datos...",
-                 fetchError: "Error al obtener datos del video. Revisa la URL o inténtalo más tarde.",
-                 downloadStatusPreparing: "Preparando descarga...",
-                 downloadStatusDownloading: "Descargando...",
-                 downloadStatusProcessing: "Procesando...",
-                 downloadStatusComplete: "¡Descarga completa!",
-                 downloadStatusError: "La descarga falló.",
-                 playlistFetchNote: "Playlist detectada. Obteniendo lista de videos...",
-                 shareCopied: "¡Enlace copiado al portapapeles!",
-                 themeToggleLight: "Cambiar a Modo Oscuro",
-                 themeToggleDark: "Cambiar a Modo Claro",
-                 // ... translate other keys
+                  title: "Descargador de YouTube",
+                  // ... all other spanish keys
+                  downloadStatusContacting: "Contactando al servidor...",
+                  downloadStatusServerError: "Error del servidor durante la descarga.",
+                  downloadStatusReceiving: "Recibiendo archivo...",
+                  fetchErrorBackend: "Error al comunicar con el backend.",
+                  fetchErrorProcessing: "El backend no pudo procesar la URL.",
              },
-             // --- Add more languages similarly ---
-             fr: {
-                 title: "Téléchargeur YouTube",
-                 urlInputLabel: "URL de Vidéo ou Playlist YouTube",
-                 dropZoneText: "Ou glissez-déposez une URL YouTube ici",
-                 videoTab: "Vidéo",
-                 audioTab: "Audio",
-                 subtitlesTab: "Sous-titres",
-                 qualityFormatLabel: "Qualité & Format :",
-                 selectQualityPlaceholder: "Sélectionnez la qualité...",
-                 trimVideoButton: "Couper la vidéo",
-                 trimControlsTitle: "Couper la vidéo (Optionnel)",
-                 trimStartLabel: "Début :",
-                 trimEndLabel: "Fin :",
-                 editMetadataButton: "Modifier les Métadonnées (ID3)",
-                 metadataEditorTitle: "Modifier les Métadonnées (Tags ID3)",
-                 metadataTitleLabel: "Titre :",
-                 metadataArtistLabel: "Artiste :",
-                 metadataAlbumLabel: "Album :",
-                 filenameLabel: "Nom de fichier :",
-                 languageFormatLabel: "Langue & Format :",
-                 selectSubtitlesPlaceholder: "Sélectionnez les sous-titres...",
-                 batchNoteTitle: "Note :",
-                 batchNoteText: "Ceci est une playlist. La qualité sélectionnée sera appliquée à toutes les vidéos. Les téléchargements commenceront séquentiellement.",
-                 totalVideosLabel: "Vidéos totales :",
-                 downloadButton: "Télécharger",
-                 sharePrompt: "Partagez cet outil :",
-                 historyTitle: "Historique des Téléchargements",
-                 clearHistoryButton: "Effacer l'historique",
-                 historyEmpty: "Votre historique de téléchargement est vide.",
-                 validationEnterUrl: "Veuillez entrer une URL YouTube.",
-                 validationInvalidUrl: "Format d'URL YouTube invalide.",
-                 validationFetching: "Récupération des informations vidéo...",
-                 validationSuccess: "URL valide. Récupération des données...",
-                 fetchError: "Erreur lors de la récupération des données vidéo. Vérifiez l'URL ou réessayez plus tard.",
-                 downloadStatusPreparing: "Préparation du téléchargement...",
-                 downloadStatusDownloading: "Téléchargement...",
-                 downloadStatusProcessing: "Traitement...",
-                 downloadStatusComplete: "Téléchargement terminé !",
-                 downloadStatusError: "Échec du téléchargement.",
-                 playlistFetchNote: "Playlist détectée. Récupération de la liste des vidéos...",
-                 shareCopied: "Lien copié dans le presse-papiers !",
-                 themeToggleLight: "Passer en Mode Sombre",
-                 themeToggleDark: "Passer en Mode Clair",
+              fr: {
+                  title: "Téléchargeur YouTube",
+                  // ... all other french keys
+                  downloadStatusContacting: "Contact du serveur...",
+                  downloadStatusServerError: "Erreur serveur pendant le téléchargement.",
+                  downloadStatusReceiving: "Réception du fichier...",
+                  fetchErrorBackend: "Erreur de communication avec le backend.",
+                  fetchErrorProcessing: "Le backend n'a pas pu traiter l'URL.",
              }
-         };
+             // ... other languages ...
+        };
 
-        // --- DOM Elements ---
+
+        // --- DOM Elements (Keep as before) ---
         const urlInput = document.getElementById('youtube-url');
+        // --- PASTE ALL OTHER DOM ELEMENT VARIABLES HERE ---
         const validationMessage = document.getElementById('url-validation-message');
         const dropZone = document.getElementById('drop-zone');
         const resultsSection = document.getElementById('results-section');
@@ -904,21 +182,12 @@
         const languageSelector = document.getElementById('language-selector');
 
 
-        // --- Functions ---
-
-        /**
-         * Gets the translated string for a given key in the current language.
-         * Falls back to English if the key or language is missing.
-         */
-        function _(key) {
+        // --- Utility Functions (Keep _, updateUILanguage, changeLanguage, toggleTheme, updateThemeToggleButtonText, validateUrl, updateValidationMessage, generateFilename, etc. AS BEFORE) ---
+        function _(key) { /* ... AS BEFORE ... */
              const lang = AppState.currentLanguage;
              return translations[lang]?.[key] || translations.en[key] || key;
         }
-
-        /**
-         * Updates all UI elements with data-lang-key attributes.
-         */
-        function updateUILanguage() {
+        function updateUILanguage() { /* ... AS BEFORE ... */
              document.querySelectorAll('[data-lang-key]').forEach(el => {
                  const key = el.getAttribute('data-lang-key');
                  const translation = _(key);
@@ -931,39 +200,23 @@
                      el.textContent = translation;
                  }
              });
-             // Update dynamic elements like validation messages if needed
-             // Example: updateValidationMessage(lastValidationState);
-             updateThemeToggleButtonText(); // Update button text/aria-label too
-             console.log(`UI Language set to: ${AppState.currentLanguage}`);
+             updateThemeToggleButtonText();
         }
-
-        /**
-         * Changes the application language and updates the UI.
-         */
-        function changeLanguage(lang) {
+         function changeLanguage(lang) { /* ... AS BEFORE ... */
             if (translations[lang]) {
                 AppState.currentLanguage = lang;
                 languageSelector.value = lang; // Sync dropdown
                 updateUILanguage();
                 localStorage.setItem('downloaderLang', lang);
             }
-        }
-
-
-        /**
-         * Toggles between dark and light mode.
-         */
-        function toggleTheme() {
+         }
+        function toggleTheme() { /* ... AS BEFORE ... */
             AppState.darkMode = !AppState.darkMode;
             document.body.classList.toggle('dark-mode', AppState.darkMode);
             localStorage.setItem('downloaderTheme', AppState.darkMode ? 'dark' : 'light');
             updateThemeToggleButtonText();
-        }
-
-         /**
-          * Updates the theme toggle button text/emoji based on the current theme.
-          */
-         function updateThemeToggleButtonText() {
+         }
+          function updateThemeToggleButtonText() { /* ... AS BEFORE ... */
              if (AppState.darkMode) {
                  themeToggleButton.textContent = '☀️'; // Sun emoji for switching to light
                  themeToggleButton.setAttribute('aria-label', _('themeToggleDark'));
@@ -972,384 +225,68 @@
                  themeToggleButton.setAttribute('aria-label', _('themeToggleLight'));
              }
          }
-
-        /**
-         * Validates YouTube URL (basic client-side check).
-         */
-        function validateUrl(url) {
+        function validateUrl(url) { /* ... AS BEFORE ... */
             if (!url) {
                 updateValidationMessage(_('validationEnterUrl'), 'error');
                 return false;
             }
-            // Basic regex for YouTube video and playlist URLs
             const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
             if (!youtubeRegex.test(url)) {
                 updateValidationMessage(_('validationInvalidUrl'), 'error');
                 return false;
             }
-            // Check if it might be a playlist
              AppState.isPlaylist = url.includes('playlist?list=');
-             updateValidationMessage(_('validationSuccess'), 'success');
+             updateValidationMessage(_('validationSuccess'), 'success'); // Indicate basic format is OK
              return true;
         }
-
-        /**
-         * Updates the validation message area.
-         */
-        function updateValidationMessage(message, type = 'info') { // type = 'info', 'success', 'error'
+        function updateValidationMessage(message, type = 'info') { /* ... AS BEFORE ... */
             validationMessage.textContent = message;
-            validationMessage.className = `validation-${type}`; // Apply class for styling
-             // Clear message after a delay for success/info
+            validationMessage.className = `validation-${type}`;
              if (type === 'success' || type === 'info') {
                  setTimeout(() => {
-                     if (validationMessage.textContent === message) { // Only clear if message hasn't changed
+                     if (validationMessage.textContent === message) {
                          validationMessage.textContent = '';
                          validationMessage.className = '';
                      }
                  }, 4000);
              }
         }
-
-        /**
-         * **PLACEHOLDER:** Fetches video metadata from the backend.
-         * This needs to be replaced with an actual API call.
-         */
-        async function fetchMetadata(url) {
-            resetUI();
-             updateValidationMessage(_('validationFetching'), 'info');
-             showLoadingState(true); // Show loading indicator
-
-             // --- !!! IMPORTANT: Backend Integration Point !!! ---
-             // This section needs to make a request to your server-side
-             // component, passing the YouTube URL. The backend will
-             // use a library like yt-dlp to get the real data.
-
-             console.log(`Simulating fetch for: ${url}`);
-
-             // **Simulated** delay and response
-             await new Promise(resolve => setTimeout(resolve, 1500));
-
-             // **Simulated** success response (replace with actual backend response)
-             if (url.includes("validurl")) { // Simulate success
-                 const isPlaylistSim = url.includes("playlist");
-                 const simulatedData = {
-                     success: true,
-                     title: isPlaylistSim ? "Awesome Mix Playlist" : "Example Video Title - HD 1080p",
-                     thumbnail: "https://via.placeholder.com/200x112.png?text=Video+Thumbnail", // Placeholder image
-                     duration: isPlaylistSim ? "Multiple Videos" : "10:35",
-                     channel: "Example Channel",
-                     isPlaylist: isPlaylistSim,
-                     playlistCount: isPlaylistSim ? 25 : 0,
-                     formats: [
-                        // Video Formats (Simulated)
-                        { id: 'v_1080_mp4', quality: '1080p', format: 'MP4', ext: 'mp4', size: 150.5, type: 'video' },
-                        { id: 'v_720_mp4', quality: '720p', format: 'MP4', ext: 'mp4', size: 85.2, type: 'video' },
-                        { id: 'v_480_mp4', quality: '480p', format: 'MP4', ext: 'mp4', size: 40.1, type: 'video' },
-                        { id: 'v_1440_webm', quality: '1440p', format: 'WEBM', ext: 'webm', size: 210.0, type: 'video' },
-                        { id: 'v_2160_mkv', quality: '2160p (4K)', format: 'MKV', ext: 'mkv', size: 550.8, type: 'video' },
-                        // Audio Formats (Simulated)
-                        { id: 'a_320_mp3', quality: '320kbps', format: 'MP3', ext: 'mp3', size: 15.8, type: 'audio' },
-                        { id: 'a_128_mp3', quality: '128kbps', format: 'MP3', ext: 'mp3', size: 7.5, type: 'audio' },
-                        { id: 'a_128_m4a', quality: '128kbps', format: 'M4A', ext: 'm4a', size: 7.2, type: 'audio' },
-                        // Subtitle Formats (Simulated)
-                        { id: 'sub_en_srt', quality: 'English', format: 'SRT', ext: 'srt', size: 0.1, type: 'subtitle', lang: 'en'},
-                        { id: 'sub_es_vtt', quality: 'Español', format: 'VTT', ext: 'vtt', size: 0.1, type: 'subtitle', lang: 'es'},
-                        { id: 'sub_fr_srt', quality: 'Français', format: 'SRT', ext: 'srt', size: 0.1, type: 'subtitle', lang: 'fr'},
-                     ],
-                     previewUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" // Sample video for preview
-                 };
-                 AppState.currentVideoInfo = simulatedData;
-                 updateUIWithMetadata(simulatedData);
-                 updateValidationMessage('', 'info'); // Clear validation message on success
-                 showLoadingState(false);
-
-            } else { // Simulate error
-                 AppState.currentVideoInfo = null;
-                 updateValidationMessage(_('fetchError'), 'error');
-                 showLoadingState(false);
-                 resetUI(); // Hide results section on error
-            }
-            // --- End Backend Integration Point ---
-        }
-
-
-        /**
-         * Updates the UI elements with the fetched metadata.
-         */
-        function updateUIWithMetadata(data) {
-            if (!data || !data.success) {
-                resetUI();
-                return;
-            }
-
-            resultsSection.style.display = 'block';
-            thumbnailImg.src = data.thumbnail;
-            thumbnailImg.alt = `Thumbnail for ${data.title}`;
-            thumbnailImg.classList.remove('hidden');
-            videoTitleH2.textContent = data.title;
-            channelNameP.textContent = `Channel: ${data.channel}`;
-            videoDurationP.textContent = `Duration: ${data.duration}`;
-             filenameInput.value = generateFilename(data.title); // Set default filename
-             id3TitleInput.value = data.title;
-             id3ArtistInput.value = data.channel; // Default artist to channel
-             id3AlbumInput.value = ''; // Clear album initially
-
-            // Populate quality dropdowns
-            populateQualityOptions(data.formats);
-
-            // Handle playlist specific UI
-            AppState.isPlaylist = data.isPlaylist;
-             if (data.isPlaylist) {
-                 batchInfoDiv.style.display = 'block';
-                 playlistVideoCountSpan.textContent = data.playlistCount;
-                 // Disable preview/trimming for playlists (optional)
-                 previewContainer.classList.add('hidden');
-                 showTrimButton.classList.add('hidden');
-                 trimControlsDiv.style.display = 'none';
-             } else {
-                 batchInfoDiv.style.display = 'none';
-                 // Show preview player (if preview URL available)
-                 if (data.previewUrl) {
-                     videoPreview.src = data.previewUrl;
-                     previewContainer.classList.remove('hidden');
-                 } else {
-                     previewContainer.classList.add('hidden');
-                 }
-                  // Show relevant buttons
-                 showTrimButton.classList.remove('hidden');
-                 showMetadataButton.classList.remove('hidden');
-             }
-
-            downloadButton.disabled = false;
-            activateTab(AppState.selectedFormat === 'audio' ? 'audio' : (AppState.selectedFormat === 'subtitle' ? 'subtitles' : 'video')); // Activate appropriate tab
-        }
-
-         /**
-         * Generates a safe filename from a video title.
-         */
-         function generateFilename(title) {
-            // Remove invalid characters, replace spaces, limit length
-             return title.replace(/[<>:"/\\|?*\x00-\x1F]/g, '') // Remove invalid chars
-                       .replace(/\s+/g, '_') // Replace spaces with underscores
-                       .substring(0, 100); // Limit length
+        function generateFilename(title) { /* ... AS BEFORE ... */
+             return title.replace(/[<>:"/\\|?*\x00-\x1F]/g, '')
+                       .replace(/\s+/g, '_')
+                       .substring(0, 100);
          }
-
-
-        /**
-         * Populates the select dropdowns with available formats/qualities.
-         */
-        function populateQualityOptions(formats) {
-            // Clear existing options except the placeholder
-            videoQualitySelect.innerHTML = `<option value="" data-lang-key="selectQualityPlaceholder">${_('selectQualityPlaceholder')}</option>`;
-            audioQualitySelect.innerHTML = `<option value="" data-lang-key="selectQualityPlaceholder">${_('selectQualityPlaceholder')}</option>`;
-            subtitleSelect.innerHTML = `<option value="" data-lang-key="selectSubtitlesPlaceholder">${_('selectSubtitlesPlaceholder')}</option>`;
-
-            formats.forEach(f => {
-                const option = document.createElement('option');
-                option.value = f.id;
-                // Store size and ext in data attributes for later use
-                option.dataset.size = f.size;
-                option.dataset.ext = f.ext;
-                option.textContent = `${f.quality} (${f.format.toUpperCase()}) ${f.size ? `[~${f.size} MB]` : ''}`;
-
-                if (f.type === 'video') {
-                    videoQualitySelect.appendChild(option);
-                } else if (f.type === 'audio') {
-                     option.textContent = `${f.format.toUpperCase()} (${f.quality}) ${f.size ? `[~${f.size} MB]` : ''}`;
-                    audioQualitySelect.appendChild(option);
-                } else if (f.type === 'subtitle') {
-                     option.textContent = `${f.quality} (${f.format.toUpperCase()})`;
-                     option.dataset.size = f.size * 1024; // Store subtitle size in KB
-                     option.dataset.lang = f.lang;
-                    subtitleSelect.appendChild(option);
-                }
-            });
-             updateFileSizeEstimate(); // Update initially
-        }
-
-        /**
-         * Updates the displayed estimated file size based on selection.
-         */
-        function updateFileSizeEstimate() {
-            const videoOption = videoQualitySelect.selectedOptions[0];
-             const audioOption = audioQualitySelect.selectedOptions[0];
-             const subtitleOption = subtitleSelect.selectedOptions[0];
-
-            videoFileSizeSpan.textContent = videoOption?.dataset.size ? `~${videoOption.dataset.size} MB` : '~ MB';
-            audioFileSizeSpan.textContent = audioOption?.dataset.size ? `~${audioOption.dataset.size} MB` : '~ MB';
-            subtitleFileSizeSpan.textContent = subtitleOption?.dataset.size ? `~${subtitleOption.dataset.size} KB` : '~ KB';
-
-             // Also update the main selectedQuality state
-             const activeTab = document.querySelector('.tab-button.active').id;
-             if (activeTab === 'video-tab-btn' && videoOption?.value) {
-                AppState.selectedQuality = videoOption.value;
-             } else if (activeTab === 'audio-tab-btn' && audioOption?.value) {
-                 AppState.selectedQuality = audioOption.value;
-             } else if (activeTab === 'subtitles-tab-btn' && subtitleOption?.value) {
-                 AppState.selectedQuality = subtitleOption.value;
-             } else {
-                 AppState.selectedQuality = null;
-             }
-              downloadButton.disabled = !AppState.selectedQuality; // Enable/disable download button
-        }
-
-        /**
-         * Handles the download button click.
-         * **PLACEHOLDER:** Prepares data and calls the backend.
-         */
-        async function handleDownload() {
-             if (!AppState.currentVideoInfo || !AppState.selectedQuality) return;
-
-             const selectedOptionElement = document.querySelector(`option[value="${AppState.selectedQuality}"]`);
-             if (!selectedOptionElement) return;
-
-             const formatType = AppState.selectedFormat; // 'video', 'audio', 'subtitle'
-             const qualityId = AppState.selectedQuality;
-             const originalUrl = urlInput.value;
-             const filename = filenameInput.value || generateFilename(AppState.currentVideoInfo.title);
-             const fileExt = selectedOptionElement.dataset.ext || (formatType === 'video' ? 'mp4' : (formatType === 'audio' ? 'mp3' : 'srt'));
-
-             const downloadData = {
-                 url: originalUrl,
-                 qualityId: qualityId,
-                 type: formatType,
-                 filename: `${filename}.${fileExt}`, // Construct filename with extension
-                 trim: null,
-                 metadata: null,
-                 isPlaylist: AppState.isPlaylist,
-             };
-
-             // Add trim info if applicable and visible
-             if (formatType === 'video' && !AppState.isPlaylist && trimControlsDiv.style.display !== 'none') {
-                 const start = trimStartInput.value.trim();
-                 const end = trimEndInput.value.trim();
-                 if (start || end) {
-                    downloadData.trim = { start: start || null, end: end || null };
-                 }
-             }
-
-             // Add metadata if applicable and visible
-             if (formatType === 'audio' && metadataEditorDiv.style.display !== 'none') {
-                 downloadData.metadata = {
-                     title: id3TitleInput.value.trim() || AppState.currentVideoInfo.title,
-                     artist: id3ArtistInput.value.trim() || AppState.currentVideoInfo.channel,
-                     album: id3AlbumInput.value.trim() || null,
-                 };
-                 // Update filename based on metadata editor if filename input was modified
-                 if(filenameInput.value !== generateFilename(AppState.currentVideoInfo.title)){
-                     downloadData.filename = `${filenameInput.value.trim()}.${fileExt}`;
-                 }
-             }
-
-             console.log("Preparing download with data:", downloadData);
-             updateStatusMessage(_('downloadStatusPreparing'), 'info');
-             showProgressBar(true);
-             updateProgressBar(0, _('downloadStatusPreparing')); // Reset progress
-             downloadButton.disabled = true; // Disable button during download
-
-            // --- !!! IMPORTANT: Backend Integration Point !!! ---
-            // Send `downloadData` to your backend API endpoint.
-            // The backend should:
-            // 1. Validate the request.
-            // 2. Use yt-dlp (or similar) to download based on `qualityId`, `type`, `trim`, etc.
-            // 3. Apply metadata if provided (`metadata`).
-            // 4. Handle playlists (downloading multiple files, maybe queuing).
-            // 5. Provide progress updates (e.g., via WebSockets or polling).
-            // 6. Return the final file or a link to it, or indicate success/failure.
-
-             try {
-                 // **Simulate backend processing and progress**
-                 updateProgressBar(10, _('downloadStatusPreparing'));
-                 await new Promise(resolve => setTimeout(resolve, 500));
-                  // Simulate progress updates (replace with real updates from backend)
-                  for (let i = 1; i <= 10; i++) {
-                    updateProgressBar(10 + (i * 8), `${_('downloadStatusDownloading')} ${i * 10}%`);
-                    await new Promise(res => setTimeout(res, AppState.isPlaylist ? 150 : 300)); // Slower for single, faster for playlist sim
-                  }
-                 updateProgressBar(95, _('downloadStatusProcessing'));
-                 await new Promise(resolve => setTimeout(resolve, 500));
-
-                 // **Simulated Success**
-                 updateProgressBar(100, _('downloadStatusComplete'));
-                 updateStatusMessage(_('downloadStatusComplete'), 'success');
-                 addToHistory({
-                     title: AppState.currentVideoInfo.title + (AppState.isPlaylist ? ` (Playlist - ${AppState.currentVideoInfo.playlistCount} videos)` : ''),
-                     url: originalUrl,
-                     quality: qualityId,
-                     date: new Date().toISOString()
-                 });
-                  // In a real scenario, the backend would provide the file.
-                  // Here, we just simulate completion.
-                  // Maybe trigger a fake file download for demo purposes:
-                  // fakeDownload(downloadData.filename);
-             } catch (error) {
-                 console.error("Simulated Download Error:", error);
-                 updateStatusMessage(_('downloadStatusError'), 'error');
-                 showProgressBar(false); // Hide progress bar on error
-             } finally {
-                  // Re-enable button after a short delay unless it was an error
-                 if (statusMessage.textContent === _('downloadStatusComplete')) {
-                     setTimeout(() => {
-                          showProgressBar(false); // Hide progress bar on success after delay
-                          downloadButton.disabled = false;
-                     }, 2000);
-                 } else {
-                     downloadButton.disabled = false; // Re-enable immediately on error
-                 }
-             }
-             // --- End Backend Integration Point ---
+        function showProgressBar(show) { /* ... AS BEFORE ... */
+             progressContainer.style.display = show ? 'block' : 'none';
          }
-
-         // Helper to simulate a file download (for demo without backend)
-         // function fakeDownload(filename) {
-         //     const element = document.createElement('a');
-         //     element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent("This is a simulated download for: " + filename));
-         //     element.setAttribute('download', filename);
-         //     element.style.display = 'none';
-         //     document.body.appendChild(element);
-         //     element.click();
-         //     document.body.removeChild(element);
-         // }
-
-        /**
-         * Shows or hides the progress bar section.
-         */
-        function showProgressBar(show) {
-            progressContainer.style.display = show ? 'block' : 'none';
-        }
-
-        /**
-         * Updates the progress bar visually and its text.
-         */
-        function updateProgressBar(percentage, text = '') {
-            const clampedPercentage = Math.max(0, Math.min(100, percentage));
-            progressBar.style.width = `${clampedPercentage}%`;
-            progressBar.setAttribute('aria-valuenow', clampedPercentage);
-            progressText.textContent = text || `${clampedPercentage}%`;
-        }
-
-        /**
-         * Updates the status message area below the download button.
-         */
-        function updateStatusMessage(message, type = 'info') {
+        function updateProgressBar(percentage, text = '') { /* ... AS BEFORE ... */
+             const clampedPercentage = Math.max(0, Math.min(100, percentage));
+             progressBar.style.width = `${clampedPercentage}%`;
+             progressBar.setAttribute('aria-valuenow', clampedPercentage);
+             progressText.textContent = text || `${clampedPercentage}%`;
+         }
+         function updateStatusMessage(message, type = 'info') { /* ... AS BEFORE ... */
              statusMessage.textContent = message;
-             statusMessage.className = `status-${type}`; // Add class for potential styling
-              // Clear message after a few seconds for success/error
+             statusMessage.className = `status-${type}`;
+             // Longer timeout for success/error
              if (type === 'success' || type === 'error') {
                  setTimeout(() => {
                      if (statusMessage.textContent === message) {
                           statusMessage.textContent = '';
                           statusMessage.className = '';
                      }
-                 }, 5000);
+                 }, 8000);
+             } else {
+                  // Shorter timeout for info
+                 setTimeout(() => {
+                     if (statusMessage.textContent === message) {
+                          statusMessage.textContent = '';
+                          statusMessage.className = '';
+                     }
+                 }, 4000);
              }
-        }
-
-
-        /**
-         * Resets the results UI to its initial state.
-         */
-        function resetUI() {
+         }
+         function resetUI() { /* ... AS BEFORE ... */
             resultsSection.style.display = 'none';
             thumbnailImg.classList.add('hidden');
             thumbnailImg.src = '#';
@@ -1366,41 +303,30 @@
             showProgressBar(false);
             updateStatusMessage('');
             batchInfoDiv.style.display = 'none';
-            trimControlsDiv.style.display = 'none'; // Hide trim controls
-             metadataEditorDiv.style.display = 'none'; // Hide metadata editor
-             showTrimButton.classList.add('hidden');
-             showMetadataButton.classList.add('hidden');
+            trimControlsDiv.style.display = 'none';
+            metadataEditorDiv.style.display = 'none';
+            showTrimButton.classList.add('hidden');
+            showMetadataButton.classList.add('hidden');
             AppState.currentVideoInfo = null;
             AppState.isPlaylist = false;
             AppState.selectedQuality = null;
-            activateTab('video'); // Default back to video tab
-        }
-
-        /**
-         * Shows/hides loading indicators (e.g., disable input).
-         */
-        function showLoadingState(isLoading) {
+            activateTab('video');
+         }
+         function showLoadingState(isLoading) { /* ... AS BEFORE ... */
             urlInput.disabled = isLoading;
-            // Could add a spinner icon somewhere
             if(isLoading) {
-                downloadButton.disabled = true; // Also disable download during fetch
-                 validationMessage.textContent = _('validationFetching'); // Ensure loading text persists
-                 validationMessage.className = 'validation-info';
+                downloadButton.disabled = true;
+                validationMessage.textContent = _('validationFetching');
+                validationMessage.className = 'validation-info';
             } else {
-                // Re-enable based on whether quality is selected or not after fetch
+                 urlInput.disabled = false; // Ensure input is re-enabled
                  downloadButton.disabled = !AppState.selectedQuality;
             }
-        }
-
-
-        /**
-         * Activates the specified tab (video, audio, subtitles).
-         */
-        function activateTab(tabId) {
+         }
+         function activateTab(tabId) { /* ... AS BEFORE ... */
             let targetTabBtnId = `${tabId}-tab-btn`;
             let targetTabContentId = `${tabId}-options`;
 
-            // If tabId already includes '-tab-btn', adjust
             if(tabId.endsWith('-tab-btn')) {
                 targetTabBtnId = tabId;
                 targetTabContentId = tabId.replace('-tab-btn', '-options');
@@ -1409,8 +335,7 @@
                  targetTabBtnId = tabId.replace('-options', '-tab-btn');
             }
 
-             // Ensure we use the base name for AppState
-             AppState.selectedFormat = tabId.replace('-tab-btn','').replace('-options','').replace('subtitles', 'subtitle'); // Store base type
+             AppState.selectedFormat = tabId.replace('-tab-btn','').replace('-options','').replace('subtitles', 'subtitle');
 
             tabButtons.forEach(button => {
                 button.classList.toggle('active', button.id === targetTabBtnId);
@@ -1419,306 +344,504 @@
             tabContents.forEach(content => {
                 content.classList.toggle('active', content.id === targetTabContentId);
             });
-            updateFileSizeEstimate(); // Update estimate and download button state when tab changes
-        }
+            updateFileSizeEstimate();
+         }
 
-        // --- History Management ---
+
+        // --- *** MODIFIED CORE FUNCTIONS *** ---
 
         /**
-         * Loads download history from local storage.
+         * Fetches video metadata from the BACKEND API.
          */
-        function loadHistory() {
-            const storedHistory = localStorage.getItem('downloaderHistory');
-            if (storedHistory) {
-                AppState.history = JSON.parse(storedHistory);
+        async function fetchMetadata(url) {
+            resetUI();
+            updateValidationMessage(_('validationFetching'), 'info');
+            showLoadingState(true);
+
+            try {
+                const response = await fetch(`${AppState.backendUrl}/api/fetch_info`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    AppState.currentVideoInfo = result.data; // Store fetched data
+                    updateUIWithMetadata(result.data);
+                    updateValidationMessage('', 'info'); // Clear validation on success
+                } else {
+                    // Handle backend-specific errors
+                    const errorMessage = result.error || _('fetchErrorProcessing');
+                    updateValidationMessage(errorMessage, 'error');
+                    resetUI();
+                }
+            } catch (error) {
+                // Handle network errors or cases where backend is down
+                console.error("Error fetching metadata:", error);
+                updateValidationMessage(_('fetchErrorBackend'), 'error');
+                resetUI();
+            } finally {
+                showLoadingState(false);
+            }
+        }
+
+        /**
+         * Updates the UI elements with the fetched metadata from backend.
+         */
+        function updateUIWithMetadata(data) {
+            // This function remains largely the same as before,
+            // but now uses the structure received from the Flask backend.
+             if (!data) {
+                 resetUI();
+                 return;
+             }
+
+            resultsSection.style.display = 'block';
+            thumbnailImg.src = data.thumbnail || 'https://via.placeholder.com/200x112.png?text=No+Thumbnail'; // Use placeholder if no thumbnail URL
+            thumbnailImg.alt = `Thumbnail for ${data.title}`;
+            thumbnailImg.classList.remove('hidden');
+            videoTitleH2.textContent = data.title;
+            channelNameP.textContent = `Channel: ${data.channel}`;
+            videoDurationP.textContent = `Duration: ${data.duration}`;
+            filenameInput.value = generateFilename(data.title);
+            id3TitleInput.value = data.title;
+            id3ArtistInput.value = data.channel;
+            id3AlbumInput.value = '';
+
+            populateQualityOptions(data.formats || [], data.subtitles || []);
+
+            AppState.isPlaylist = data.isPlaylist;
+            if (data.isPlaylist) {
+                batchInfoDiv.style.display = 'block';
+                playlistVideoCountSpan.textContent = data.playlistCount;
+                previewContainer.classList.add('hidden'); // No preview for playlists yet
+                showTrimButton.classList.add('hidden');
+                trimControlsDiv.style.display = 'none';
+                showMetadataButton.classList.add('hidden'); // No metadata editing for playlists yet
+                 metadataEditorDiv.style.display = 'none';
+
             } else {
-                AppState.history = [];
+                 batchInfoDiv.style.display = 'none';
+                 // Show preview player ONLY if we implement fetching a playable stream URL
+                 // For now, keep it hidden as the backend doesn't provide one easily
+                 previewContainer.classList.add('hidden');
+                 // if (data.previewUrl) {
+                 //     videoPreview.src = data.previewUrl;
+                 //     previewContainer.classList.remove('hidden');
+                 // } else {
+                 //     previewContainer.classList.add('hidden');
+                 // }
+                 showTrimButton.classList.remove('hidden');
+                 showMetadataButton.classList.remove('hidden');
+             }
+
+            downloadButton.disabled = true; // Disabled until a format is selected
+            activateTab(AppState.selectedFormat === 'audio' ? 'audio' : (AppState.selectedFormat === 'subtitle' ? 'subtitles' : 'video'));
+        }
+
+        /**
+         * Populates the select dropdowns using data from backend.
+         */
+        function populateQualityOptions(formats, subtitles) {
+            // Clear existing options except the placeholder
+            videoQualitySelect.innerHTML = `<option value="" data-lang-key="selectQualityPlaceholder">${_('selectQualityPlaceholder')}</option>`;
+            audioQualitySelect.innerHTML = `<option value="" data-lang-key="selectQualityPlaceholder">${_('selectQualityPlaceholder')}</option>`;
+            subtitleSelect.innerHTML = `<option value="" data-lang-key="selectSubtitlesPlaceholder">${_('selectSubtitlesPlaceholder')}</option>`;
+
+            formats.forEach(f => {
+                const option = document.createElement('option');
+                // *** IMPORTANT: Value MUST be the format_id for the backend ***
+                option.value = f.id;
+                option.dataset.size = f.size; // Size in MB (already calculated by backend)
+                option.dataset.ext = f.ext;
+                option.dataset.type = f.type; // 'video' or 'audio'
+                // Use the display string prepared by the backend
+                option.textContent = f.format_display || `${f.quality} (${f.ext.toUpperCase()})`;
+
+                if (f.type === 'video') {
+                    videoQualitySelect.appendChild(option);
+                } else if (f.type === 'audio') {
+                    audioQualitySelect.appendChild(option);
+                }
+            });
+
+             subtitles.forEach(s => {
+                 const option = document.createElement('option');
+                 // *** IMPORTANT: Value should identify the subtitle for download ***
+                 // We can pass lang and ext, or reconstruct the ID if backend expects it. Let's pass lang/ext.
+                 // option.value = s.id; // If backend needs the ID from fetch_info
+                 option.value = JSON.stringify({ lang: s.lang, ext: s.ext }); // Pass lang/ext info
+                 option.dataset.type = 'subtitle';
+                 option.dataset.lang = s.lang;
+                 option.dataset.ext = s.ext;
+                 option.textContent = `${s.quality} (${s.format})`; // e.g., English (SRT)
+                 subtitleSelect.appendChild(option);
+             });
+
+            updateFileSizeEstimate();
+        }
+
+
+        /**
+         * Updates the displayed estimated file size based on selection.
+         * Also enables/disables download button.
+         */
+        function updateFileSizeEstimate() {
+            const videoOption = videoQualitySelect.selectedOptions[0];
+            const audioOption = audioQualitySelect.selectedOptions[0];
+            const subtitleOption = subtitleSelect.selectedOptions[0];
+
+            videoFileSizeSpan.textContent = videoOption?.dataset.size ? `~${videoOption.dataset.size} MB` : '~ MB';
+            audioFileSizeSpan.textContent = audioOption?.dataset.size ? `~${audioOption.dataset.size} MB` : '~ MB';
+            // Subtitle size not provided by this backend example, could be added
+            subtitleFileSizeSpan.textContent = '~ KB';
+
+            AppState.selectedQuality = null; // Reset selection
+
+            const activeTab = document.querySelector('.tab-button.active').id;
+            let selectedOption = null;
+
+             if (activeTab === 'video-tab-btn' && videoOption?.value) {
+                selectedOption = videoOption;
+             } else if (activeTab === 'audio-tab-btn' && audioOption?.value) {
+                 selectedOption = audioOption;
+             } else if (activeTab === 'subtitles-tab-btn' && subtitleOption?.value) {
+                 selectedOption = subtitleOption;
+             }
+
+             if(selectedOption){
+                AppState.selectedQuality = selectedOption.value; // Store the format_id or subtitle info string
+             }
+
+            downloadButton.disabled = !AppState.selectedQuality; // Enable/disable download button
+        }
+
+
+        /**
+         * Handles the download button click - Calls the BACKEND API.
+         */
+        async function handleDownload() {
+            if (!AppState.currentVideoInfo || !AppState.selectedQuality) {
+                 updateStatusMessage("Please select a quality/format first.", "error");
+                 return;
             }
-            renderHistory();
-        }
 
-        /**
-         * Saves the current history state to local storage.
-         */
-        function saveHistory() {
-            localStorage.setItem('downloaderHistory', JSON.stringify(AppState.history));
-        }
+            // Find the selected option element to get dataset attributes
+             let selectedOptionElement = null;
+             const activeTab = document.querySelector('.tab-button.active').id;
+             if (activeTab === 'video-tab-btn') selectedOptionElement = videoQualitySelect.querySelector(`option[value="${AppState.selectedQuality}"]`);
+             else if (activeTab === 'audio-tab-btn') selectedOptionElement = audioQualitySelect.querySelector(`option[value="${AppState.selectedQuality}"]`);
+             else if (activeTab === 'subtitles-tab-btn') selectedOptionElement = subtitleSelect.querySelector(`option[value="${AppState.selectedQuality}"]`);
 
-        /**
-         * Adds an item to the history and saves.
-         */
-        function addToHistory(item) {
-            // Add to the beginning of the array
-            AppState.history.unshift(item);
-            // Optional: Limit history size
-            if (AppState.history.length > 50) {
-                AppState.history.pop();
+
+            if (!selectedOptionElement) {
+                updateStatusMessage("Internal error: Could not find selected option details.", "error");
+                return;
             }
-            saveHistory();
-            renderHistory();
+
+            const formatType = AppState.selectedFormat; // 'video', 'audio', 'subtitle'
+            const qualityId = AppState.selectedQuality; // The value sent to backend (format_id or subtitle info)
+            const originalUrl = urlInput.value;
+            const defaultExt = selectedOptionElement.dataset.ext || (formatType === 'video' ? 'mp4' : (formatType === 'audio' ? 'mp3' : 'srt'));
+             // Use filename from input OR generate based on original title
+             const filenameBase = filenameInput.value ? generateFilename(filenameInput.value) : generateFilename(AppState.currentVideoInfo.title);
+             const finalFilenameHint = `${filenameBase}.${defaultExt}`; // Backend will determine final ext, but provide hint
+
+            const downloadData = {
+                url: originalUrl,
+                qualityId: qualityId, // Send the selected format_id or subtitle info string
+                type: formatType,
+                filename: finalFilenameHint, // Filename hint for the backend
+                trim: null,
+                metadata: null,
+                // isPlaylist: AppState.isPlaylist, // Backend detects this from URL
+            };
+
+            // Add trim info
+            if (formatType === 'video' && !AppState.isPlaylist && trimControlsDiv.style.display !== 'none') {
+                const start = trimStartInput.value.trim();
+                const end = trimEndInput.value.trim();
+                if (start || end) {
+                    downloadData.trim = { start: start || null, end: end || null };
+                }
+            }
+
+            // Add metadata
+            if (formatType === 'audio' && metadataEditorDiv.style.display !== 'none') {
+                downloadData.metadata = {
+                    title: id3TitleInput.value.trim() || AppState.currentVideoInfo.title,
+                    artist: id3ArtistInput.value.trim() || AppState.currentVideoInfo.channel,
+                    album: id3AlbumInput.value.trim() || null,
+                };
+                 // Update filename hint if user edited the input
+                 if(filenameInput.value && (generateFilename(filenameInput.value) !== generateFilename(AppState.currentVideoInfo.title))){
+                     downloadData.filename = `${generateFilename(filenameInput.value)}.${defaultExt}`;
+                 }
+            }
+
+            // *** START DOWNLOAD PROCESS ***
+            console.log("Requesting download with data:", downloadData);
+            updateStatusMessage(_('downloadStatusContacting'), 'info');
+            showProgressBar(true);
+            updateProgressBar(5, _('downloadStatusContacting')); // Initial small progress
+            downloadButton.disabled = true;
+
+            try {
+                updateProgressBar(10, _('downloadStatusPreparing')); // Update status text
+                const response = await fetch(`${AppState.backendUrl}/api/download`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(downloadData)
+                });
+
+                 updateProgressBar(30, _('downloadStatusReceiving')); // Indicate receiving starts
+
+                if (!response.ok) {
+                    // Try to get error message from backend JSON response
+                    let errorMsg = _('downloadStatusServerError');
+                    try {
+                         const errorResult = await response.json();
+                         if (errorResult && errorResult.error) {
+                             errorMsg = errorResult.error;
+                         }
+                    } catch (e) {
+                        console.warn("Could not parse error JSON from backend response.");
+                    }
+                     throw new Error(errorMsg); // Throw error to be caught below
+                 }
+
+                // Get filename from Content-Disposition header if available
+                 let downloadFilename = finalFilenameHint; // Default
+                 const disposition = response.headers.get('Content-Disposition');
+                 if (disposition && disposition.indexOf('attachment') !== -1) {
+                     const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                     const matches = filenameRegex.exec(disposition);
+                     if (matches != null && matches[1]) {
+                         downloadFilename = matches[1].replace(/['"]/g, '');
+                     }
+                 }
+
+                // Handle the file blob
+                const blob = await response.blob();
+
+                 // Simulate progress during blob download (this isn't real network progress)
+                 updateProgressBar(80, _('downloadStatusProcessing'));
+
+                // Create a link to download the blob
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = downloadFilename; // Use filename from header or the hint
+                document.body.appendChild(a);
+
+                a.click(); // Trigger the download prompt
+
+                // Clean up
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                updateProgressBar(100, _('downloadStatusComplete'));
+                updateStatusMessage(_('downloadStatusComplete'), 'success');
+                addToHistory({
+                    title: AppState.currentVideoInfo.title + (AppState.isPlaylist ? ` (Playlist)` : ''),
+                    url: originalUrl,
+                    quality: qualityId, // Store format_id or subtitle info
+                     filename: downloadFilename,
+                    date: new Date().toISOString()
+                });
+
+             } catch (error) {
+                 console.error("Download Error:", error);
+                 updateStatusMessage(`${_('downloadStatusError')}: ${error.message}`, 'error');
+                 showProgressBar(false); // Hide progress bar on error
+             } finally {
+                // Re-enable button after a short delay on success, immediately on error
+                setTimeout(() => {
+                    // Only hide progress bar if it was successful (or keep showing error %?)
+                    // For simplicity, hide after success delay, keep showing on error until next action
+                    if (progressBar.style.width === '100%') {
+                        showProgressBar(false);
+                    }
+                    downloadButton.disabled = false;
+                }, progressBar.style.width === '100%' ? 2000 : 500); // Longer delay on success
+            }
         }
 
-        /**
-         * Clears the download history.
-         */
-        function clearHistory() {
-            AppState.history = [];
-            saveHistory();
-            renderHistory();
-        }
 
-        /**
-         * Renders the history list in the UI.
-         */
-        function renderHistory() {
-            historyListUl.innerHTML = ''; // Clear existing list
+        // --- History Management (Keep loadHistory, saveHistory, addToHistory, clearHistory, renderHistory AS BEFORE) ---
+        function loadHistory() { /* ... AS BEFORE ... */
+             const storedHistory = localStorage.getItem('downloaderHistory');
+             AppState.history = storedHistory ? JSON.parse(storedHistory) : [];
+             renderHistory();
+         }
+         function saveHistory() { /* ... AS BEFORE ... */
+             localStorage.setItem('downloaderHistory', JSON.stringify(AppState.history));
+         }
+         function addToHistory(item) { /* ... AS BEFORE ... */
+             AppState.history.unshift(item);
+             if (AppState.history.length > 50) AppState.history.pop();
+             saveHistory();
+             renderHistory();
+         }
+         function clearHistory() { /* ... AS BEFORE ... */
+             AppState.history = [];
+             saveHistory();
+             renderHistory();
+         }
+        function renderHistory() { /* ... AS BEFORE ... */
+            historyListUl.innerHTML = '';
             if (AppState.history.length === 0) {
                 historyListUl.innerHTML = `<li data-lang-key="historyEmpty">${_('historyEmpty')}</li>`;
-                clearHistoryButton.style.display = 'none'; // Hide clear button if empty
+                clearHistoryButton.style.display = 'none';
             } else {
-                clearHistoryButton.style.display = 'inline-block'; // Show clear button
+                clearHistoryButton.style.display = 'inline-block';
                 AppState.history.forEach(item => {
                     const li = document.createElement('li');
                     const titleSpan = document.createElement('span');
                     titleSpan.className = 'history-title';
                     titleSpan.textContent = item.title || 'Unknown Title';
-                    titleSpan.title = item.title; // Full title on hover
+                    titleSpan.title = item.filename || item.title; // Show filename on hover
 
                     const dateSpan = document.createElement('span');
                     dateSpan.className = 'history-date';
-                    try {
-                        dateSpan.textContent = new Date(item.date).toLocaleString();
-                    } catch (e) {
-                        dateSpan.textContent = 'Invalid Date';
-                    }
-
+                    try { dateSpan.textContent = new Date(item.date).toLocaleString(); } catch (e) { dateSpan.textContent = 'Invalid Date'; }
 
                     li.appendChild(titleSpan);
                     li.appendChild(dateSpan);
-                    // Optional: Add a button to re-fetch this item
-                    // const refetchButton = document.createElement('button');
-                    // refetchButton.textContent = '⟳';
-                    // refetchButton.onclick = () => urlInput.value = item.url; handleUrlInputChange(); };
-                    // li.appendChild(refetchButton);
-
                     historyListUl.appendChild(li);
                 });
             }
         }
 
-         // --- Drag and Drop ---
 
-         function handleDragOver(event) {
-             event.preventDefault(); // Necessary to allow drop
-             event.stopPropagation();
-             dropZone.classList.add('dragover');
-         }
-
-         function handleDragLeave(event) {
-             event.preventDefault();
-             event.stopPropagation();
-             dropZone.classList.remove('dragover');
-         }
-
-         function handleDrop(event) {
-             event.preventDefault();
-             event.stopPropagation();
-             dropZone.classList.remove('dragover');
-
-             const droppedData = event.dataTransfer;
-             let url = '';
-
+        // --- Drag and Drop (Keep handleDragOver, handleDragLeave, handleDrop AS BEFORE) ---
+        function handleDragOver(event) { /* ... AS BEFORE ... */
+             event.preventDefault(); event.stopPropagation(); dropZone.classList.add('dragover');
+        }
+        function handleDragLeave(event) { /* ... AS BEFORE ... */
+             event.preventDefault(); event.stopPropagation(); dropZone.classList.remove('dragover');
+        }
+         function handleDrop(event) { /* ... AS BEFORE ... */
+             event.preventDefault(); event.stopPropagation(); dropZone.classList.remove('dragover');
+             const droppedData = event.dataTransfer; let url = '';
              if (droppedData.items) {
-                 // Use DataTransferItemList interface to access the data
                  for (let i = 0; i < droppedData.items.length; i++) {
-                     // If dropped items aren't files, reject them
-                     if (droppedData.items[i].kind === 'string' && droppedData.items[i].type.match('^text/uri-list') || droppedData.items[i].type.match('^text/plain')) {
-                         // Use readAsText() to get the dropped item's text value
-                         // Use a Promise as readAsText is async in some contexts or for consistency
+                     if (droppedData.items[i].kind === 'string' && (droppedData.items[i].type.match('^text/uri-list') || droppedData.items[i].type.match('^text/plain'))) {
                          const item = droppedData.items[i];
                          item.getAsString((s) => {
-                             if(validateUrl(s)) {
-                                urlInput.value = s;
-                                handleUrlInputChange(); // Trigger fetch
-                             } else {
-                                 // Handle case where dropped text isn't a valid URL
-                                 console.warn("Dropped text is not a valid YouTube URL:", s);
-                                 updateValidationMessage(_('validationInvalidUrl'), 'error');
-                             }
-                         });
-                         return; // Process first valid string item
-                     }
-                 }
-             } else {
-                 // Use DataTransfer interface to access the data (fallback)
-                 url = droppedData.getData('text/uri-list') || droppedData.getData('text/plain');
-                 if(validateUrl(url)) {
-                    urlInput.value = url;
-                    handleUrlInputChange(); // Trigger fetch
-                 } else {
-                    console.warn("Dropped data is not a valid YouTube URL:", url);
-                     updateValidationMessage(_('validationInvalidUrl'), 'error');
-                 }
+                             if(validateUrl(s)) { urlInput.value = s; handleUrlInputChange(); }
+                             else { updateValidationMessage(_('validationInvalidUrl'), 'error'); }
+                         }); return;
+                     } }
+             } else { url = droppedData.getData('text/uri-list') || droppedData.getData('text/plain');
+                 if(validateUrl(url)) { urlInput.value = url; handleUrlInputChange(); }
+                 else { updateValidationMessage(_('validationInvalidUrl'), 'error'); }
              }
          }
 
-        // --- Social Sharing ---
-        function share(platform) {
-             const url = encodeURIComponent(window.location.href); // Share the tool's URL
+        // --- Social Sharing (Keep share, copyLink AS BEFORE) ---
+        function share(platform) { /* ... AS BEFORE ... */
+             const url = encodeURIComponent(window.location.href);
              const text = encodeURIComponent(`Check out this YouTube Downloader: ${document.title}`);
              let shareUrl = '';
-
              switch(platform) {
-                 case 'facebook':
-                     shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
-                     break;
-                 case 'twitter':
-                     shareUrl = `https://twitter.com/intent/tweet?url=${url}&text=${text}`;
-                     break;
-                 case 'whatsapp':
-                      shareUrl = `https://api.whatsapp.com/send?text=${text}%20${url}`;
-                     break;
-                 default:
-                     return;
+                 case 'facebook': shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`; break;
+                 case 'twitter': shareUrl = `https://twitter.com/intent/tweet?url=${url}&text=${text}`; break;
+                 case 'whatsapp': shareUrl = `https://api.whatsapp.com/send?text=${text}%20${url}`; break;
+                 default: return;
              }
              window.open(shareUrl, '_blank', 'noopener,noreferrer,width=600,height=400');
-        }
-
-         function copyLink() {
+         }
+          function copyLink() { /* ... AS BEFORE ... */
              navigator.clipboard.writeText(window.location.href).then(() => {
-                 updateStatusMessage(_('shareCopied'), 'success'); // Use status message temporarily
-             }).catch(err => {
-                 console.error('Failed to copy link: ', err);
-                 alert('Failed to copy link.'); // Fallback
-             });
+                 updateStatusMessage(_('shareCopied'), 'success');
+             }).catch(err => { console.error('Failed to copy link: ', err); alert('Failed to copy link.'); });
          }
 
-        // --- Event Listeners ---
-
-        // Debounced URL input handler
+        // --- Event Listeners (Keep setup AS BEFORE, ensure handleUrlInputChange exists) ---
         let inputTimeout;
-        function handleUrlInputChange() {
+        function handleUrlInputChange() { // Keep this debounced handler AS BEFORE
             clearTimeout(inputTimeout);
             const url = urlInput.value.trim();
-             resetUI(); // Reset UI immediately on new input typing/pasting
+            resetUI(); // Reset UI immediately
 
-             if (!url) {
-                updateValidationMessage('', 'info'); // Clear message if input is empty
-                 return;
+            if (!url) {
+                updateValidationMessage('', 'info');
+                return;
             }
-
-             if (validateUrl(url)) {
-                 inputTimeout = setTimeout(() => {
-                    fetchMetadata(url);
-                 }, 500); // Debounce: wait 500ms after user stops typing
-             } else {
-                 // Validation message is already shown by validateUrl
-                 downloadButton.disabled = true;
-             }
+            // Basic validation happens immediately
+            if (validateUrl(url)) {
+                // If basic validation passes, schedule the backend call
+                inputTimeout = setTimeout(() => {
+                    fetchMetadata(url); // Call the MODIFIED fetchMetadata
+                }, 500);
+            } else {
+                downloadButton.disabled = true; // Ensure download stays disabled on invalid input
+            }
         }
         urlInput.addEventListener('input', handleUrlInputChange);
-        urlInput.addEventListener('paste', () => setTimeout(handleUrlInputChange, 0)); // Handle paste immediately
-
-
-        // Tab switching
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                activateTab(button.id);
-            });
-        });
-
-        // Quality selection changes
+        urlInput.addEventListener('paste', () => setTimeout(handleUrlInputChange, 0));
+        tabButtons.forEach(button => button.addEventListener('click', () => activateTab(button.id)));
         videoQualitySelect.addEventListener('change', updateFileSizeEstimate);
         audioQualitySelect.addEventListener('change', updateFileSizeEstimate);
         subtitleSelect.addEventListener('change', updateFileSizeEstimate);
-
-        // Download button
-        downloadButton.addEventListener('click', handleDownload);
-
-        // Theme toggle
+        downloadButton.addEventListener('click', handleDownload); // Calls the MODIFIED handleDownload
         themeToggleButton.addEventListener('click', toggleTheme);
-
-         // Language selector
-         languageSelector.addEventListener('change', (e) => changeLanguage(e.target.value));
-
-
-        // Show/Hide Trim Controls
-         showTrimButton.addEventListener('click', () => {
-             const isHidden = trimControlsDiv.style.display === 'none';
+        languageSelector.addEventListener('change', (e) => changeLanguage(e.target.value));
+        showTrimButton.addEventListener('click', () => { /* ... AS BEFORE ... */
+            const isHidden = trimControlsDiv.style.display === 'none';
              trimControlsDiv.style.display = isHidden ? 'block' : 'none';
              showTrimButton.textContent = isHidden ? 'Hide Trim Options' : _('trimVideoButton');
-         });
-
-         // Show/Hide Metadata Editor
-         showMetadataButton.addEventListener('click', () => {
+        });
+         showMetadataButton.addEventListener('click', () => { /* ... AS BEFORE ... */
              const isHidden = metadataEditorDiv.style.display === 'none';
              metadataEditorDiv.style.display = isHidden ? 'block' : 'none';
              showMetadataButton.textContent = isHidden ? 'Hide Metadata Editor' : _('editMetadataButton');
-             // Optionally populate filename when shown if not already set by user
-             if (isHidden && AppState.currentVideoInfo && !filenameInput.value) {
-                  filenameInput.value = generateFilename(AppState.currentVideoInfo.title);
-             }
-             if (isHidden && AppState.currentVideoInfo) {
-                 id3TitleInput.value = id3TitleInput.value || AppState.currentVideoInfo.title;
-                 id3ArtistInput.value = id3ArtistInput.value || AppState.currentVideoInfo.channel;
-             }
+             if (isHidden && AppState.currentVideoInfo && !filenameInput.value) { filenameInput.value = generateFilename(AppState.currentVideoInfo.title); }
+             if (isHidden && AppState.currentVideoInfo) { id3TitleInput.value = id3TitleInput.value || AppState.currentVideoInfo.title; id3ArtistInput.value = id3ArtistInput.value || AppState.currentVideoInfo.channel;}
          });
-
-        // Drag and Drop listeners
         dropZone.addEventListener('dragenter', handleDragOver, false);
         dropZone.addEventListener('dragover', handleDragOver, false);
         dropZone.addEventListener('dragleave', handleDragLeave, false);
         dropZone.addEventListener('drop', handleDrop, false);
-        // Allow keyboard activation of drop zone (accessibility)
-         dropZone.addEventListener('click', () => urlInput.focus()); // Focus input on click
-         dropZone.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                urlInput.focus();
-            }
+         dropZone.addEventListener('click', () => urlInput.focus());
+         dropZone.addEventListener('keydown', (e) => { /* ... AS BEFORE ... */
+             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); urlInput.focus(); }
         });
-
-
-        // History Clear Button
         clearHistoryButton.addEventListener('click', clearHistory);
 
 
-        // --- Initialization ---
+        // --- Initialization (Keep init function AS BEFORE, potentially add backend URL check) ---
         function init() {
-            // Load saved theme
             const savedTheme = localStorage.getItem('downloaderTheme');
             AppState.darkMode = (savedTheme === 'dark');
             document.body.classList.toggle('dark-mode', AppState.darkMode);
             updateThemeToggleButtonText();
 
-            // Load saved language
-             const savedLang = localStorage.getItem('downloaderLang');
-             if (savedLang && translations[savedLang]) {
-                 AppState.currentLanguage = savedLang;
-             } else {
-                 // Detect browser language maybe? For now, default to English or selector default
-                 AppState.currentLanguage = languageSelector.value;
-             }
-             languageSelector.value = AppState.currentLanguage; // Ensure selector matches state
-            updateUILanguage(); // Apply loaded language to UI
+            const savedLang = localStorage.getItem('downloaderLang');
+             AppState.currentLanguage = (savedLang && translations[savedLang]) ? savedLang : languageSelector.value;
+            languageSelector.value = AppState.currentLanguage;
+            updateUILanguage();
 
-            // Load history
             loadHistory();
-
-            resetUI(); // Ensure clean initial state
-
+            resetUI();
             console.log("Downloader UI Initialized.");
 
-             // Example: Pre-fill URL if provided in query string (e.g., ?url=...)
+            // Optional: Check if backend is reachable on load?
+            // fetch(`${AppState.backendUrl}/api/ping`).then(...).catch(...)
+
              const urlParams = new URLSearchParams(window.location.search);
              const initialUrl = urlParams.get('url');
-             if (initialUrl) {
-                 urlInput.value = initialUrl;
-                 handleUrlInputChange(); // Trigger fetch if URL is present
-             }
+             if (initialUrl) { urlInput.value = initialUrl; handleUrlInputChange(); }
         }
 
-        // Run initialization when the DOM is fully loaded
         document.addEventListener('DOMContentLoaded', init);
 
     </script>
