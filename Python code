@@ -1,0 +1,382 @@
+import os
+import json
+import yt_dlp
+from flask import Flask, request, jsonify, send_file, after_this_request
+from flask_cors import CORS
+import logging
+import re
+import tempfile
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = Flask(__name__)
+# Allow requests from your frontend's origin (replace '*' in production)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+# --- Helper Functions ---
+
+def sanitize_filename(filename):
+    """Removes potentially problematic characters from filenames."""
+    # Remove characters invalid for Windows/Linux/macOS filenames
+    sanitized = re.sub(r'[<>:"/\\|?*\x00-\x1F]', '', filename)
+    # Replace consecutive spaces/underscores with a single underscore
+    sanitized = re.sub(r'[\s_]+', '_', sanitized)
+    # Limit length (optional)
+    return sanitized[:150]
+
+def parse_duration(duration_seconds):
+    """Converts seconds to HH:MM:SS format."""
+    if duration_seconds is None:
+        return "N/A"
+    seconds = int(duration_seconds)
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    seconds = seconds % 60
+    if hours > 0:
+        return f"{hours:02}:{minutes:02}:{seconds:02}"
+    else:
+        return f"{minutes:02}:{seconds:02}"
+
+# --- API Routes ---
+
+@app.route('/api/fetch_info', methods=['POST'])
+def fetch_info():
+    """Fetches metadata for a given YouTube URL."""
+    data = request.get_json()
+    url = data.get('url')
+
+    if not url:
+        logger.warning("Fetch Info request received without URL")
+        return jsonify({"success": False, "error": "URL is required"}), 400
+
+    logger.info(f"Fetching info for URL: {url}")
+
+    ydl_opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'skip_download': True, # Don't download anything, just get info
+        'extract_flat': 'discard_in_playlist', # Process playlist videos individually for formats if it's a playlist
+        # 'forcejson': True # Ensure output is JSON, though extract_info usually returns dict
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=False)
+
+        # Basic info
+        title = info_dict.get('title', 'N/A')
+        thumbnail = info_dict.get('thumbnail') # yt-dlp usually provides best thumbnail
+        duration_sec = info_dict.get('duration')
+        duration_str = parse_duration(duration_sec)
+        channel = info_dict.get('channel', 'N/A')
+        is_playlist = 'entries' in info_dict
+        playlist_count = len(info_dict.get('entries', [])) if is_playlist else 0
+
+        # Process formats (Video + Audio)
+        formats_list = []
+        seen_formats = set() # To avoid duplicates for combined formats
+
+        if 'formats' in info_dict:
+            for f in info_dict['formats']:
+                format_id = f.get('format_id')
+                ext = f.get('ext')
+                format_note = f.get('format_note') # e.g., '1080p', 'medium'
+                resolution = f.get('resolution') # e.g., '1920x1080'
+                filesize = f.get('filesize') or f.get('filesize_approx')
+                vcodec = f.get('vcodec')
+                acodec = f.get('acodec')
+                abr = f.get('abr') # Audio bitrate
+                fps = f.get('fps')
+
+                # Skip manifests and storyboards
+                if ext in ['m3u8', 'mpd'] or vcodec == 'none' and acodec == 'none':
+                    continue
+                if not format_id:
+                     continue # Skip formats without an ID
+
+                format_key = f"{resolution}_{ext}_{vcodec}_{acodec}" # Create a key to identify unique formats
+
+                if format_key in seen_formats:
+                     continue
+                seen_formats.add(format_key)
+
+
+                item = {
+                    'id': format_id,
+                    'ext': ext,
+                    'format': format_note or resolution or f"{ext.upper()}", # Best guess for display name
+                    'size': round(filesize / (1024 * 1024), 2) if filesize else None, # Convert to MB
+                    'type': 'video' if vcodec != 'none' else 'audio',
+                    'resolution': resolution,
+                    'vcodec': vcodec,
+                    'acodec': acodec,
+                    'abr': abr,
+                    'fps': fps,
+                    # Quality string for display (can be refined)
+                    'quality': f"{resolution}" if vcodec != 'none' else f"{abr}kbps" if abr else "Audio",
+                }
+                if vcodec != 'none' and resolution: # Video formats
+                     item['quality'] = f"{resolution.split('x')[1]}p" if 'x' in resolution else resolution
+                     if fps:
+                        item['quality'] += f" {fps}fps"
+                     item['format_display'] = f"{item['quality']} ({ext.upper()})"
+                elif acodec != 'none': # Audio only formats
+                    item['quality'] = f"{abr}kbps" if abr else "Audio"
+                    item['format_display'] = f"{item['quality']} ({ext.upper()})"
+                else: # Should not happen based on filter above
+                     continue
+
+                if item['size']:
+                    item['format_display'] += f" [~{item['size']} MB]"
+
+                formats_list.append(item)
+
+         # Process subtitles
+        subtitles_list = []
+        if info_dict.get('subtitles'):
+            for lang, subs in info_dict['subtitles'].items():
+                for sub_format in subs:
+                     # Prioritize common formats
+                     if sub_format['ext'] in ['srt', 'vtt']:
+                          subtitles_list.append({
+                               'id': f"sub_{lang}_{sub_format['ext']}",
+                               'lang': lang,
+                               'ext': sub_format['ext'],
+                               'format': sub_format['ext'].upper(),
+                               'quality': sub_format.get('name', lang), # Display name or lang code
+                               'url': sub_format['url'], # URL might be needed if downloading separately
+                               'type': 'subtitle',
+                          })
+                          break # Take the first preferred format found per language
+
+        # Sort formats (optional: sort by resolution/bitrate)
+        # Example: Sort video by height, then fps, then audio by bitrate
+        formats_list.sort(key=lambda x: (
+            int(x['resolution'].split('x')[1]) if x.get('resolution') and 'x' in x['resolution'] else 0,
+            x.get('fps', 0),
+            x.get('abr', 0)
+        ), reverse=True)
+
+
+        response_data = {
+            'success': True,
+            'data': {
+                'title': title,
+                'thumbnail': thumbnail,
+                'duration': duration_str,
+                'duration_seconds': duration_sec,
+                'channel': channel,
+                'isPlaylist': is_playlist,
+                'playlistCount': playlist_count,
+                'formats': formats_list,
+                'subtitles': subtitles_list,
+                # 'previewUrl': info_dict.get('url') # May provide a direct link sometimes, use with caution
+            }
+        }
+        logger.info(f"Successfully fetched info for: {title}")
+        return jsonify(response_data)
+
+    except yt_dlp.utils.DownloadError as e:
+        logger.error(f"yt-dlp DownloadError: {e}")
+        # More specific error checking if needed
+        if "Unsupported URL" in str(e):
+             error_msg = "Unsupported URL."
+        elif "Video unavailable" in str(e):
+            error_msg = "Video unavailable."
+        else:
+             error_msg = f"Could not process URL: {e}"
+        return jsonify({"success": False, "error": error_msg}), 400
+    except Exception as e:
+        logger.exception(f"An unexpected error occurred during fetch_info for {url}")
+        return jsonify({"success": False, "error": f"An unexpected server error occurred: {e}"}), 500
+
+@app.route('/api/download', methods=['POST'])
+def download_media():
+    """Downloads the media based on provided parameters."""
+    data = request.get_json()
+    url = data.get('url')
+    quality_id = data.get('qualityId') # This should be the yt-dlp format_id
+    file_type = data.get('type') # 'video', 'audio', 'subtitle'
+    filename_hint = data.get('filename', 'download')
+    trim_data = data.get('trim') # { "start": "HH:MM:SS", "end": "HH:MM:SS" }
+    metadata_data = data.get('metadata') # { "title": "...", "artist": "...", "album": "..." }
+
+    if not url or not quality_id:
+        return jsonify({"success": False, "error": "URL and Quality ID are required"}), 400
+
+    # Sanitize filename received from client
+    safe_filename_base = sanitize_filename(os.path.splitext(filename_hint)[0])
+
+    # Create a temporary directory for the download
+    temp_dir = tempfile.mkdtemp(prefix="ytdlp_")
+    # Construct temporary output path using a pattern yt-dlp understands
+    # Let yt-dlp determine the final extension based on format/postprocessing
+    output_template = os.path.join(temp_dir, f"{safe_filename_base}.%(ext)s")
+
+    logger.info(f"Download request: URL={url}, Format={quality_id}, Type={file_type}, TempPattern={output_template}")
+    logger.info(f"Trim: {trim_data}, Metadata: {metadata_data}")
+
+    ydl_opts = {
+        'format': quality_id,
+        'outtmpl': output_template,
+        'quiet': True,
+        'no_warnings': True,
+        'postprocessors': [],
+        # 'ffmpeg_location': '/path/to/your/ffmpeg' # Uncomment if ffmpeg isn't in PATH
+    }
+
+    # --- Configure Postprocessors based on request ---
+    final_extension = None
+
+    if file_type == 'audio':
+         # Extract audio, potentially convert
+         codec_map = {'mp3': 'mp3', 'm4a': 'aac', 'opus': 'opus', 'vorbis': 'vorbis', 'flac': 'flac'} # Common audio codecs
+         # Determine preferred codec from quality_id if possible, default to mp3 or keep original if not specified
+         requested_ext = quality_id.split('_')[-1] if '_' in quality_id else 'mp3' # Basic guess
+         preferred_codec = codec_map.get(requested_ext, 'mp3')
+         final_extension = preferred_codec if preferred_codec != 'aac' else 'm4a' # Set expected final extension
+
+         # Extract bitrate preference if possible (e.g., from 'a_128_mp3')
+         bitrate_match = re.search(r'_(\d+)_', quality_id)
+         preferred_quality = bitrate_match.group(1) if bitrate_match else '192' # Default bitrate
+
+         ydl_opts['postprocessors'].append({
+             'key': 'FFmpegExtractAudio',
+             'preferredcodec': preferred_codec,
+             'preferredquality': preferred_quality, # e.g., '128', '192', '320', or '0' (best)
+         })
+         logger.info(f"Configured audio extraction: Codec={preferred_codec}, Quality={preferred_quality}")
+
+
+    # Apply Trimming (requires ffmpeg)
+    if trim_data and (trim_data.get('start') or trim_data.get('end')):
+        # Using --download-sections is generally more reliable if yt-dlp supports it well
+        # Format: *start_time-end_time
+        sections = "*"
+        if trim_data.get('start'):
+             sections += trim_data['start']
+        sections += "-"
+        if trim_data.get('end'):
+             sections += trim_data['end']
+
+        if sections != "*-": # Only apply if start or end is specified
+             ydl_opts['download_sections'] = sections
+             logger.info(f"Configured trimming with download_sections: {sections}")
+        # Alternative using Postprocessor (more complex):
+        # ppa_args = []
+        # if trim_data.get('start'): ppa_args.extend(['-ss', trim_data['start']])
+        # if trim_data.get('end'): ppa_args.extend(['-to', trim_data['end']])
+        # if ppa_args:
+        #     ydl_opts['postprocessor_args'] = {'ffmpeg': ppa_args} # Check exact syntax needed
+        #     logger.info(f"Configured trimming with PPA: {ppa_args}")
+
+
+    # Apply Metadata (requires ffmpeg usually, esp. for audio tags)
+    if metadata_data:
+        ydl_opts['embedmetadata'] = True # General flag if yt-dlp handles it for the format
+        # Specific metadata tags for postprocessor (more reliable for audio)
+        if file_type == 'audio':
+             ppa_metadata = []
+             if metadata_data.get('title'): ppa_metadata.extend(['-metadata', f"title={metadata_data['title']}"])
+             if metadata_data.get('artist'): ppa_metadata.extend(['-metadata', f"artist={metadata_data['artist']}"])
+             if metadata_data.get('album'): ppa_metadata.extend(['-metadata', f"album={metadata_data['album']}"])
+             # Append to existing postprocessor args or create new one if needed
+             # Caution: This might conflict with other ffmpeg args. Test carefully.
+             # For simplicity, rely on embedmetadata or yt-dlp's --parse-metadata if possible first.
+             # Let's add '--add-metadata' which might be simpler
+             ydl_opts['addmetadata'] = True # Simpler flag
+             ydl_opts['parse_metadata'] = [] # List to add metadata items
+             if metadata_data.get('title'): ydl_opts['parse_metadata'].append(f'title:%(meta_title)s') # Example: How to parse from yt-dlp fields if needed
+             logger.info(f"Configured metadata embedding (using flags)")
+
+
+    # --- Execute Download ---
+    actual_filepath = None
+    try:
+        logger.info(f"Starting download with opts: {ydl_opts}")
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            error_code = ydl.download([url])
+
+            if error_code != 0:
+                raise yt_dlp.utils.DownloadError(f"yt-dlp download exited with error code {error_code}")
+
+            # Find the downloaded file (yt-dlp might slightly change the name/ext)
+            downloaded_files = os.listdir(temp_dir)
+            if not downloaded_files:
+                raise FileNotFoundError("Download finished, but no file found in temporary directory.")
+
+            # Assume the first file found is the one we want (usually correct for single downloads)
+            actual_filename = downloaded_files[0]
+            actual_filepath = os.path.join(temp_dir, actual_filename)
+            logger.info(f"Download successful. File saved to: {actual_filepath}")
+
+            # Determine final filename for client download
+            # Use the actual extension from the downloaded file
+            _fname, actual_ext = os.path.splitext(actual_filename)
+            final_client_filename = f"{safe_filename_base}{actual_ext}"
+
+
+            @after_this_request
+            def cleanup(response):
+                try:
+                    if actual_filepath and os.path.exists(actual_filepath):
+                        os.remove(actual_filepath)
+                        logger.info(f"Cleaned up temporary file: {actual_filepath}")
+                    if os.path.exists(temp_dir):
+                         os.rmdir(temp_dir) # Remove dir only if empty
+                         logger.info(f"Attempted cleanup of temp directory: {temp_dir}")
+                except Exception as e:
+                    logger.error(f"Error during cleanup: {e}")
+                return response
+
+            logger.info(f"Sending file '{final_client_filename}' to client from path '{actual_filepath}'")
+            return send_file(
+                actual_filepath,
+                as_attachment=True,
+                download_name=final_client_filename # Use the sanitized base + actual extension
+            )
+
+    except yt_dlp.utils.DownloadError as e:
+        logger.error(f"yt-dlp DownloadError during download: {e}")
+        # Cleanup potentially partially downloaded files
+        try:
+            if actual_filepath and os.path.exists(actual_filepath): os.remove(actual_filepath)
+            if os.path.exists(temp_dir):
+                 # Be careful removing directory if other files exist or if errors happened early
+                 try:
+                      if not os.listdir(temp_dir): os.rmdir(temp_dir)
+                 except OSError: pass # Ignore if not empty
+        except Exception as cleanup_error:
+             logger.error(f"Error during error cleanup: {cleanup_error}")
+        return jsonify({"success": False, "error": f"Download failed: {e}"}), 500
+    except FileNotFoundError as e:
+        logger.error(f"File not found after download: {e}")
+        try:
+             if os.path.exists(temp_dir):
+                  try:
+                      if not os.listdir(temp_dir): os.rmdir(temp_dir)
+                  except OSError: pass
+        except Exception as cleanup_error:
+             logger.error(f"Error during error cleanup: {cleanup_error}")
+        return jsonify({"success": False, "error": "Download process completed, but output file was not found."}), 500
+    except Exception as e:
+        logger.exception("An unexpected error occurred during download")
+        # General cleanup attempt
+        try:
+             if actual_filepath and os.path.exists(actual_filepath): os.remove(actual_filepath)
+             if os.path.exists(temp_dir):
+                  try:
+                       if not os.listdir(temp_dir): os.rmdir(temp_dir)
+                  except OSError: pass
+        except Exception as cleanup_error:
+             logger.error(f"Error during final exception cleanup: {cleanup_error}")
+        return jsonify({"success": False, "error": f"An unexpected server error occurred: {e}"}), 500
+
+
+if __name__ == '__main__':
+    # Make sure ffmpeg is accessible or provide path in ydl_opts
+    logger.info("Starting Flask server...")
+    # Use host='0.0.0.0' to make accessible on your network (use with caution)
+    app.run(debug=True, host='127.0.0.1', port=5000)
